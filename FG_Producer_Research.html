@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FG | Producer Research Tool</title>
+<style>
+  :root {
+    --ink: #1a1a2e; --accent: #2E5994; --accent-light: #dce8f7; --accent-dark: #1F3864;
+    --muted: #6b7280; --border: #d1d5db; --bg: #f8f9fc; --white: #fff;
+    --green: #15803d; --green-light: #f0fdf4; --green-mid: #86efac;
+    --amber: #b45309; --amber-light: #fffbeb;
+    --red: #b91c1c; --red-light: #fef2f2;
+    --purple: #7c3aed; --purple-light: #f3e8ff;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; background: var(--bg); color: var(--ink); }
+
+  /* HEADER */
+  .header { background: var(--accent-dark); color: white; padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
+  .header-logo { font-size: 15px; font-weight: 700; }
+  .header-sub { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+  .header-badge { margin-left: auto; background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+
+  /* STEPS NAV */
+  .steps-nav { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; gap: 0; }
+  .step-tab { padding: 12px 20px; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; white-space: nowrap; }
+  .step-tab:hover { color: var(--accent); }
+  .step-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .step-tab.done { color: var(--green); }
+  .step-tab.done .step-num { background: var(--green); }
+  .step-num { width: 18px; height: 18px; border-radius: 50%; background: var(--muted); color: white; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .step-tab.active .step-num { background: var(--accent); }
+
+  /* PANELS */
+  .panel { display: none; padding: 24px; max-width: 900px; margin: 0 auto; }
+  .panel.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .card-title { font-size: 13px; font-weight: 700; color: var(--accent-dark); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card-title span { font-size: 16px; }
+
+  /* FORM */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group.full { grid-column: 1/-1; }
+  .form-group.half { grid-column: span 2; }
+  .form-group label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-group input, .form-group select, .form-group textarea {
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
+    font-size: 13px; font-family: inherit; background: white;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  /* BUTTONS */
+  .btn { padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-success { background: var(--green); color: white; }
+  .btn-success:hover { background: #166534; }
+  .btn-outline { background: white; color: var(--accent); border: 1px solid var(--accent); }
+  .btn-outline:hover { background: var(--accent-light); }
+  .btn-ghost { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--accent-light); color: var(--accent); }
+  .btn-lg { padding: 11px 22px; font-size: 13px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* QUERY BLOCKS */
+  .query-block { margin-bottom: 14px; }
+  .query-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .query-box { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 12px; line-height: 1.6; font-family: 'Courier New', monospace; white-space: pre-wrap; word-break: break-word; position: relative; }
+  .copy-chip { position: absolute; top: 8px; right: 8px; padding: 3px 8px; background: white; border: 1px solid var(--border); border-radius: 4px; font-size: 10px; cursor: pointer; font-family: 'Segoe UI', sans-serif; color: var(--muted); }
+  .copy-chip:hover { background: var(--accent-light); color: var(--accent); }
+
+  /* PASTE AREA */
+  .paste-box { width: 100%; min-height: 280px; border: 2px dashed var(--border); border-radius: var(--radius); padding: 16px; font-size: 12px; font-family: 'Segoe UI', sans-serif; line-height: 1.6; resize: vertical; transition: border-color 0.15s; }
+  .paste-box:focus { outline: none; border-color: var(--accent); border-style: solid; }
+  .paste-box.has-content { border-style: solid; border-color: var(--border); }
+
+  /* PARSED PREVIEW */
+  .parsed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .parsed-field { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; }
+  .parsed-field label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 2px; }
+  .parsed-field .pval { font-size: 12px; color: var(--ink); line-height: 1.4; }
+  .parsed-field .pval.empty { color: #d1d5db; font-style: italic; }
+  .parsed-field.editable .pval { display: none; }
+  .parsed-field input, .parsed-field select, .parsed-field textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: 4px;
+    padding: 4px 6px; font-size: 12px; font-family: inherit;
+  }
+  .parsed-field.full { grid-column: 1/-1; }
+
+  /* STATUS MSGS */
+  .info-box { border-radius: 6px; padding: 10px 14px; font-size: 12px; line-height: 1.5; margin-bottom: 12px; }
+  .info-blue { background: var(--accent-light); border: 1px solid #93c5fd; color: var(--accent-dark); }
+  .info-green { background: var(--green-light); border: 1px solid var(--green-mid); color: var(--green); }
+  .info-amber { background: var(--amber-light); border: 1px solid #fcd34d; color: var(--amber); }
+  .info-red { background: var(--red-light); border: 1px solid #fca5a5; color: var(--red); }
+
+  /* DB SUMMARY */
+  .db-summary { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .db-stat { font-size: 11px; color: var(--muted); }
+  .db-stat strong { font-size: 16px; color: var(--ink); display: block; }
+
+  .tier-pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+  .tier-Foundation { background: var(--amber-light); color: var(--amber); }
+  .tier-Growth { background: var(--accent-light); color: var(--accent); }
+  .tier-Partnership { background: var(--green-light); color: var(--green); }
+  .tier-Prospect { background: var(--purple-light); color: var(--purple); }
+
+  /* QC CHECKLIST */
+  .qc-list { display: flex; flex-direction: column; gap: 6px; }
+  .qc-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+  .qc-item:hover { background: var(--accent-light); }
+  .qc-item.checked { background: var(--green-light); border-color: var(--green-mid); }
+  .qc-check { width: 16px; height: 16px; border: 2px solid var(--border); border-radius: 3px; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .qc-item.checked .qc-check { background: var(--green); border-color: var(--green); color: white; }
+  .qc-text { font-size: 12px; line-height: 1.4; flex: 1; }
+
+  /* SPINNER */
+  .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 8px; margin-top: 16px; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .flex-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ml-auto { margin-left: auto; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-logo">FG | Producer Research Tool</div>
+    <div class="header-sub">Research · Parse · Save to Database — all in one flow</div>
+  </div>
+  <div class="header-badge">v2.0</div>
+</div>
+
+<!-- STEP TABS -->
+<div class="steps-nav">
+  <div class="step-tab active" id="tab-1" onclick="goStep(1)">
+    <div class="step-num">1</div> Producer Details
+  </div>
+  <div class="step-tab" id="tab-2" onclick="goStep(2)">
+    <div class="step-num">2</div> Research Query
+  </div>
+  <div class="step-tab" id="tab-3" onclick="goStep(3)">
+    <div class="step-num">3</div> Paste Profile
+  </div>
+  <div class="step-tab" id="tab-4" onclick="goStep(4)">
+    <div class="step-num">4</div> Review &amp; Save
+  </div>
+  <div class="step-tab" id="tab-5" onclick="goStep(5)">
+    <div class="step-num">5</div> Database
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     STEP 1 — PRODUCER DETAILS
+═══════════════════════════════════════════════════════ -->
+<div class="panel active" id="panel-1">
+  <div class="card">
+    <div class="card-title"><span>🍷</span> Producer Details</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Producer Name *</label>
+        <input type="text" id="s1-name" placeholder="e.g. Soc. Agr. Cisorio" oninput="validateStep1()">
+      </div>
+      <div class="form-group">
+        <label>Export Brand (if different)</label>
+        <input type="text" id="s1-brand" placeholder="e.g. Modeano">
+      </div>
+      <div class="form-group">
+        <label>Country *</label>
+        <select id="s1-country" onchange="validateStep1()">
+          <option value="">— select —</option>
+          <option value="Italy">Italy</option>
+          <option value="France">France</option>
+          <option value="Spain">Spain</option>
+          <option value="Germany">Germany</option>
+          <option value="Portugal">Portugal</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group half">
+        <label>Region / Appellation *</label>
+        <input type="text" id="s1-region" placeholder="e.g. Friuli Venezia Giulia" oninput="validateStep1()">
+      </div>
+      <div class="form-group">
+        <label>Contact Name</label>
+        <input type="text" id="s1-contact" placeholder="e.g. Luca Matteo Cisorio">
+      </div>
+      <div class="form-group">
+        <label>Contact Email</label>
+        <input type="text" id="s1-email" placeholder="e.g. info@cisorio.it">
+      </div>
+      <div class="form-group">
+        <label>How / Where Met</label>
+        <input type="text" id="s1-source" placeholder="e.g. Davy's portfolio tasting, 2 June 2026">
+      </div>
+      <div class="form-group full">
+        <label>Initial Notes (optional)</label>
+        <textarea id="s1-notes" placeholder="Any observations from first meeting, specific wines tasted, flags to investigate…"></textarea>
+      </div>
+    </div>
+  </div>
+  <div class="flex-row">
+    <div id="s1-error" class="info-box info-amber" style="display:none;">Please fill in Producer Name, Country and Region before continuing.</div>
+    <button class="btn btn-primary btn-lg ml-auto" id="s1-next" onclick="goStep(2)" disabled>Generate Research Queries →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     STEP 2 — RESEARCH QUERY
+═══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-2">
+  <div class="card">
+    <div class="card-title"><span>🔍</span> Research Query — one query, copy and paste into Claude</div>
+    <div class="info-box info-blue" style="margin-bottom:16px;">
+      Copy the single query below, open a new Claude conversation, paste it, and run. Claude will search the web and return the complete structured profile. Paste the profile back here in Step 3.
+    </div>
+    <div class="query-block">
+      <div class="query-label">Single Research Query</div>
+      <div class="query-box" id="q1">
+        <span class="copy-chip" onclick="copyQuery('q1', this)">Copy</span>
+        <pre id="q1-text" style="white-space:pre-wrap;word-break:break-word;font-family:'Courier New',monospace;font-size:12px;line-height:1.6;padding-right:48px;"></pre>
+      </div>
+    </div>
+  </div>
+  <div class="flex-row">
+    <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
+    <button class="btn btn-primary btn-lg ml-auto" onclick="goStep(3)">I have the profile — Paste it →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     STEP 3 — PASTE PROFILE
+═══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-3">
+  <div class="card">
+    <div class="card-title"><span>📋</span> Paste the Claude Profile Here</div>
+    <div class="info-box info-blue" style="margin-bottom:12px;">
+      Paste the full two-section producer profile that Claude returned. The tool will extract all fields automatically. You can also paste a partial profile — any missing fields can be completed manually in Step 4.
+    </div>
+    <textarea class="paste-box" id="pasteArea" placeholder="Paste the full producer profile text here…" oninput="onPasteInput()"></textarea>
+    <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <span id="pasteWordCount" style="font-size:11px;color:var(--muted);">0 words</span>
+      <button class="btn btn-ghost" style="margin-left:auto;" onclick="clearPaste()">Clear</button>
+      <button class="btn btn-primary" id="parseBtn" onclick="parseProfile()" disabled>Extract Fields →</button>
+    </div>
+  </div>
+
+  <!-- ALSO: manual entry shortcut -->
+  <div class="card">
+    <div class="card-title"><span>✏️</span> Or Add Manually</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">If you don't have a profile yet, skip to Step 4 to enter fields directly.</p>
+    <button class="btn btn-outline" onclick="goStep(4)">Enter fields manually →</button>
+  </div>
+
+  <div class="flex-row">
+    <button class="btn btn-ghost" onclick="goStep(2)">← Back</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     STEP 4 — REVIEW & SAVE
+═══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-4">
+  <div class="card">
+    <div class="card-title"><span>✅</span> Review &amp; Edit Before Saving</div>
+    <div class="info-box info-blue" id="parseStatusMsg" style="margin-bottom:14px;display:none;"></div>
+
+    <div class="section-label">Identity</div>
+    <div class="parsed-grid">
+      <div class="parsed-field">
+        <label>Producer Name *</label>
+        <input type="text" id="p-name">
+      </div>
+      <div class="parsed-field">
+        <label>Export Brand</label>
+        <input type="text" id="p-brand">
+      </div>
+      <div class="parsed-field">
+        <label>Region</label>
+        <input type="text" id="p-region">
+      </div>
+      <div class="parsed-field">
+        <label>Country</label>
+        <select id="p-country">
+          <option value="Italy">Italy</option>
+          <option value="France">France</option>
+          <option value="Spain">Spain</option>
+          <option value="Germany">Germany</option>
+          <option value="Portugal">Portugal</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="parsed-field">
+        <label>Contact Name</label>
+        <input type="text" id="p-contact">
+      </div>
+      <div class="parsed-field">
+        <label>Contact Email</label>
+        <input type="text" id="p-email">
+      </div>
+      <div class="parsed-field">
+        <label>Website</label>
+        <input type="text" id="p-website">
+      </div>
+      <div class="parsed-field">
+        <label>Certifications</label>
+        <input type="text" id="p-certs" placeholder="e.g. SQNPI, Organic">
+      </div>
+    </div>
+
+    <div class="section-label">Portfolio — Key Wines</div>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Each wine is its own record. ABV, production and ex-cellar price can be filled manually where not extracted automatically.</p>
+
+    <!-- WINES TABLE -->
+    <div style="overflow-x:auto;margin-bottom:8px;">
+      <div style="min-width:1020px;">
+        <div style="display:grid;grid-template-columns:155px 76px 108px 50px 68px 96px 64px 64px 72px 72px 26px;gap:0;background:var(--accent-dark);color:white;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-radius:6px 6px 0 0;">
+          <div style="padding:6px 5px;">Wine Name</div>
+          <div style="padding:6px 5px;">Class.</div>
+          <div style="padding:6px 5px;">Grape / Blend</div>
+          <div style="padding:6px 5px;">ABV</div>
+          <div style="padding:6px 5px;">Closure</div>
+          <div style="padding:6px 5px;">UK Distributor</div>
+          <div style="padding:6px 5px;">Retail £</div>
+          <div style="padding:6px 5px;">On-Trade £</div>
+          <div style="padding:6px 5px;">Prod. btls</div>
+          <div style="padding:6px 5px;">Ex-Cellar €</div>
+          <div style="padding:6px 5px;"></div>
+        </div>
+        <div id="winesTableBody" style="border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;background:white;"></div>
+      </div>
+    </div>
+    <button class="btn btn-outline" style="font-size:11px;padding:5px 12px;" onclick="addWineRow()">+ Add wine</button>
+
+    <!-- hidden fields kept for DB compatibility -->
+    <input type="hidden" id="p-production">
+    <input type="hidden" id="p-pricerange">
+    <input type="hidden" id="p-ukstatus">
+    <input type="hidden" id="p-ukdist">
+    <input type="hidden" id="p-ukretail">
+    <input type="hidden" id="p-ukon">
+    <input type="hidden" id="p-uknotes">
+
+    <div class="section-label">Engagement</div>
+    <div class="parsed-grid">
+      <div class="parsed-field">
+        <label>Recommended Tier</label>
+        <select id="p-tier">
+          <option value="Prospect">Prospect</option>
+          <option value="Foundation">Foundation</option>
+          <option value="Growth">Growth</option>
+          <option value="Partnership">Partnership</option>
+        </select>
+      </div>
+      <div class="parsed-field">
+        <label>Outreach Status</label>
+        <select id="p-status">
+          <option value="Research">Research</option>
+          <option value="Email sent">Email sent</option>
+          <option value="Meeting booked">Meeting booked</option>
+          <option value="Proposal sent">Proposal sent</option>
+          <option value="Engaged">Engaged</option>
+          <option value="Declined">Declined</option>
+        </select>
+      </div>
+      <div class="parsed-field">
+        <label>First Contact Date</label>
+        <input type="date" id="p-firstcontact">
+      </div>
+      <div class="parsed-field">
+        <label>Last Activity</label>
+        <input type="date" id="p-lastactivity" value="">
+      </div>
+      <div class="parsed-field full">
+        <label>How Met / Source</label>
+        <input type="text" id="p-source">
+      </div>
+      <div class="parsed-field full" style="grid-column:1/-1;">
+        <label>Strategist Notes</label>
+        <textarea id="p-notes" style="width:100%;min-height:80px;border:1px solid var(--border);border-radius:4px;padding:6px;font-size:12px;font-family:inherit;resize:vertical;"></textarea>
+      </div>
+    </div>
+
+    <!-- QC CHECKLIST -->
+    <div class="divider"></div>
+    <div class="section-label">QC Checklist — confirm before saving</div>
+    <div class="qc-list">
+      <div class="qc-item" onclick="toggleQC(this)">
+        <div class="qc-check"></div>
+        <div class="qc-text">Family / ownership name verified manually (not carried over from a previous profile)</div>
+      </div>
+      <div class="qc-item" onclick="toggleQC(this)">
+        <div class="qc-check"></div>
+        <div class="qc-text">All Section 1 data is web-sourced only — no private knowledge mixed in</div>
+      </div>
+      <div class="qc-item" onclick="toggleQC(this)">
+        <div class="qc-check"></div>
+        <div class="qc-text">UK presence confirmed or explicitly stated as zero — not left blank by default</div>
+      </div>
+      <div class="qc-item" onclick="toggleQC(this)">
+        <div class="qc-check"></div>
+        <div class="qc-text">Any existing distributor or exclusivity arrangement noted in Strategist Notes</div>
+      </div>
+      <div class="qc-item" onclick="toggleQC(this)">
+        <div class="qc-check"></div>
+        <div class="qc-text">Key wines list reflects actual export range — not domestic/bag-in-box products</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="saveError" class="info-box info-red" style="display:none;">Producer Name is required before saving.</div>
+  <div id="saveSuccess" class="info-box info-green" style="display:none;"></div>
+
+  <div class="flex-row" style="margin-top:4px;">
+    <button class="btn btn-ghost" onclick="goStep(3)">← Back</button>
+    <button class="btn btn-success btn-lg ml-auto" onclick="saveToDatabase()">
+      💾 Save to Database
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     STEP 5 — DATABASE VIEW
+═══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-5">
+  <div class="flex-row" style="margin-bottom:14px;">
+    <div>
+      <div style="font-size:15px;font-weight:700;color:var(--accent-dark);">Producer Database</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">All producers saved from this tool</div>
+    </div>
+    <button class="btn btn-primary ml-auto" onclick="startNew()">+ Research New Producer</button>
+  </div>
+
+  <div class="db-summary" id="dbSummary" style="margin-bottom:16px;"></div>
+
+  <div id="dbCards"></div>
+
+  <div id="dbEmpty" class="info-box info-blue" style="display:none;">
+    No producers in the database yet. Start by researching a producer in Step 1.
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'fg_producer_db_v1';
+let producers = [];
+let currentStep = 1;
+let parsedData = {};
+
+// ── NAVIGATION ────────────────────────────────────────────
+function goStep(n) {
+  if (n === 2 && !validateStep1()) return;
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.step-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + n).classList.add('active');
+  document.getElementById('tab-' + n).classList.add('active');
+  currentStep = n;
+  if (n === 2) buildQueries();
+  if (n === 4) prefillStep4();
+  if (n === 5) renderDB();
+}
+
+// ── STEP 1 VALIDATION ─────────────────────────────────────
+function validateStep1() {
+  const ok = v('s1-name') && v('s1-country') && v('s1-region');
+  document.getElementById('s1-next').disabled = !ok;
+  document.getElementById('s1-error').style.display = ok ? 'none' : '';
+  return ok;
+}
+function v(id) { return document.getElementById(id).value.trim(); }
+
+// ── BUILD QUERIES ─────────────────────────────────────────
+function buildQueries() {
+  const name = v('s1-name');
+  const brand = v('s1-brand');
+  const country = v('s1-country');
+  const region = v('s1-region');
+  const label = brand ? `${name} (also known as ${brand})` : name;
+
+  document.getElementById('q1-text').textContent =
+`Research producer: ${label}, ${region}, ${country}.
+
+Search the web thoroughly across the producer website, distributor sites, Wine-Searcher, Vivino, Decanter, Jancis Robinson, wine trade press, Italian wine guides, and any UK merchant sites.
+
+Return a structured producer profile in exactly two sections:
+
+---
+
+SECTION 1 — WEB-SOURCED INTELLIGENCE
+(Only confirmed public sources. Do not mix in assumptions.)
+
+WINERY BACKGROUND
+- Founding year, family name, generation currently running the winery
+- Vineyard size (hectares), location, soil type, altitude if available
+
+KEY WINES
+Present as a table with columns: Wine Name | Classification (DOC/DOCG/IGT) | Grape variety or dominant + blend | ABV % | Style note (max 10 words)
+
+UK PRESENCE
+- Which specific wines are listed in the UK, at what retail price (£), through which named merchant or distributor
+- Any on-trade listings (restaurants, hotels, wine bars)
+- If no UK presence found, state explicitly: zero UK presence confirmed
+
+EXPORT MARKETS
+- Other confirmed export markets (US, Germany, Scandinavia, etc.) with named importers where available
+
+WEBSITE
+- URL and quality assessment: professional / basic / none
+
+SOCIAL MEDIA
+- Platforms active, follower count if visible, register (brand / personal)
+
+PRESS & AWARDS
+- Named publications, guide scores, competition awards — confirmed sources only
+
+CERTIFICATIONS
+- Organic, biodynamic, SQNPI, GlobalG.A.P. or other — only if publicly confirmed on producer or certifying body website
+- If none confirmed, state: no certification confirmed
+
+---
+
+SECTION 2 — STRATEGIST ASSESSMENT
+(Professional judgement — clearly separated from web sources)
+
+- Top 3 strengths as a UK market candidate
+- Top 3 UK gaps or missed opportunities
+- Opportunity assessment: 2–3 sentences on realistic UK potential
+- Recommended tier: Foundation / Growth / Partnership
+- Tier rationale: one sentence
+
+---
+
+QC RULE: The family name must be verified from this producer's own sources. Do not carry over any name from a previous research session.`;
+}
+
+function copyQuery(id, btn) {
+  const text = document.getElementById(id + '-text').textContent;
+  navigator.clipboard.writeText(text.trim()).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+
+// ── STEP 3 — PASTE ────────────────────────────────────────
+function onPasteInput() {
+  const text = document.getElementById('pasteArea').value;
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  document.getElementById('pasteWordCount').textContent = words + ' words';
+  document.getElementById('parseBtn').disabled = words < 20;
+  if (words > 0) document.getElementById('pasteArea').classList.add('has-content');
+}
+
+function clearPaste() {
+  document.getElementById('pasteArea').value = '';
+  document.getElementById('pasteWordCount').textContent = '0 words';
+  document.getElementById('parseBtn').disabled = true;
+  document.getElementById('pasteArea').classList.remove('has-content');
+}
+
+// ── WINES TABLE ───────────────────────────────────────────
+let wineRows = [];
+
+function renderWinesTable() {
+  const body = document.getElementById('winesTableBody');
+  if (!body) return;
+  if (wineRows.length === 0) {
+    body.innerHTML = '<div style="padding:10px 8px;font-size:11px;color:var(--muted);">No wines added yet — click "+ Add wine" or paste a profile to extract automatically.</div>';
+    return;
+  }
+  const cols = '155px 76px 108px 50px 68px 96px 64px 64px 72px 72px 26px';
+  const closureOptions = ['Cork','Stelvin','DIAM','Crown cap','n/a'];
+  const classOptions   = ['DOCG','DOC','IGT','DOCa','AOP','AOC','Spumante','PDO','PGI','n/a'];
+
+  body.innerHTML = wineRows.map((w, i) => `
+    <div style="display:grid;grid-template-columns:${cols};gap:0;border-top:1px solid var(--border);align-items:center;">
+      <div style="padding:3px 3px;"><input style="width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 4px;font-size:11px;" value="${esc(w.name)}" oninput="updateWine(${i},'name',this.value)" placeholder="Wine name"></div>
+      <div style="padding:3px 3px;">
+        <select style="width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 4px;font-size:11px;" onchange="updateWine(${i},'class',this.value)">
+          ${classOptions.map(c=>`<option${w.class===c?' selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div style="padding:3px 3px;"><input style="width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 4px;font-size:11px;" value="${esc(w.grape)}" oninput="updateWine(${i},'grape',this.value)" placeholder="e.g. Vermentino"></div>
+      <div style="padding:3px 3px;"><input style="width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 4px;font-size:11px;text-align:center;" value="${esc(w.abv)}" oninput="updateWine(${i},'abv',this.value)" placeholder="13.5"></div>
+      <div style="padding:3px 3px;">
+        <select style="width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 4px;font-size:11px;" onchange="updateWine(${i},'closure',this.value)">
+          ${closureOptions.map(c=>`<option${w.closure===c?' selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div style="padding:3px 3px;"><input style="width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 4px;font-size:11px;" value="${esc(w.ukdist)}" oninput="updateWine(${i},'ukdist',this.value)" placeholder="e.g. Davy's"></div>
+      <div style="padding:3px 3px;"><input style="width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 4px;font-size:11px;" value="${esc(w.ukretail)}" oninput="updateWine(${i},'ukretail',this.value)" placeholder="£0.00"></div>
+      <div style="padding:3px 3px;"><input style="width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 4px;font-size:11px;" value="${esc(w.ukontrade)}" oninput="updateWine(${i},'ukontrade',this.value)" placeholder="£0.00"></div>
+      <div style="padding:3px 3px;"><input style="width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 4px;font-size:11px;" value="${esc(w.production)}" oninput="updateWine(${i},'production',this.value)" placeholder="0,000"></div>
+      <div style="padding:3px 3px;"><input style="width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 4px;font-size:11px;" value="${esc(w.excell)}" oninput="updateWine(${i},'excell',this.value)" placeholder="€0.00"></div>
+      <div style="padding:3px 2px;text-align:center;"><button onclick="removeWine(${i})" style="border:none;background:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:0;">×</button></div>
+    </div>
+  `).join('');
+}
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function updateWine(i, field, val) { if (wineRows[i]) wineRows[i][field] = val; }
+function removeWine(i) { wineRows.splice(i, 1); renderWinesTable(); }
+function addWineRow(name='', cls='DOC', grape='', abv='', closure='Cork', ukdist='', ukretail='', ukontrade='', production='', excell='') {
+  wineRows.push({ name, class: cls, grape, abv, closure, ukdist, ukretail, ukontrade, production, excell });
+  renderWinesTable();
+}
+
+// ── PARSE PROFILE ─────────────────────────────────────────
+function parseProfile() {
+  const text = document.getElementById('pasteArea').value;
+  parsedData = extractFields(text);
+  goStep(4);
+  const msg = document.getElementById('parseStatusMsg');
+  msg.style.display = '';
+  const filled = Object.values(parsedData).filter(v => v && v.toString().trim()).length;
+  msg.className = 'info-box ' + (filled >= 6 ? 'info-green' : 'info-amber');
+  msg.textContent = `${filled} fields extracted automatically. Review below and correct anything that looks wrong before saving.`;
+}
+
+function extractFields(text) {
+  const d = {};
+  const t = text;
+
+  // Step 1 inputs always carry over
+  d.name = v('s1-name');
+  d.brand = v('s1-brand');
+  d.region = v('s1-region');
+  d.country = v('s1-country');
+  d.contact = v('s1-contact');
+  d.email = v('s1-email');
+  d.source = v('s1-source');
+  d.notes = v('s1-notes');
+
+  // ── WINES — parse markdown table ──────────────────────────
+  wineRows = [];
+  const knownMerchants = ["Davy's Wine Merchants","Davy's","Berry Bros & Rudd","Berry Bros","Armit","Majestic","Lea & Sandeman","Justerinis","Tanners","Corney & Barrow","Slurp","The Wine Society"];
+  let globalDist = '';
+  for (const m of knownMerchants) { if (t.includes(m)) { globalDist = m.replace(" Wine Merchants","").replace(" & Rudd",""); break; } }
+
+  // collect all £XX.XX prices from UK section for wine-level assignment
+  const ukSection = (t.match(/uk presence[\s\S]{0,800}?(?=\n##|\n---)/i) || [''])[0];
+  const ukPrices = [];
+  let pm; const priceRe = /£(\d+\.\d{2})/g;
+  while ((pm = priceRe.exec(ukSection)) !== null) ukPrices.push('£' + pm[1]);
+
+  // ABV pattern to scan style notes
+  const abvRe = /\b(\d{1,2}(?:\.\d)?)\s*%/;
+
+  const tableRows = t.match(/^\|([^|\n]+)\|([^|\n]+)\|([^|\n]*)\|?/gm) || [];
+  let wineCount = 0;
+  tableRows.forEach(row => {
+    const cells = row.split('|').map(c => c.replace(/\*\*/g,'').trim()).filter(Boolean);
+    if (cells.length < 2) return;
+    const name = cells[0];
+    if (!name || /^[-:]+$/.test(name) || /^wine|^name|^style|^class/i.test(name)) return;
+
+    const classCell = cells[1] || '';
+    let cls = 'n/a';
+    if (/DOCG/i.test(classCell)) cls = 'DOCG';
+    else if (/DOC/i.test(classCell)) cls = 'DOC';
+    else if (/IGT/i.test(classCell)) cls = 'IGT';
+    else if (/DOCa/i.test(classCell)) cls = 'DOCa';
+    else if (/AOP|AOC/i.test(classCell)) cls = 'AOP';
+    else if (/Spumante|Brut|Sparkling/i.test(classCell)) cls = 'Spumante';
+
+    const styleRaw = cells[2] || '';
+    // extract ABV from style note if present
+    const abvMatch = styleRaw.match(abvRe);
+    const abv = abvMatch ? abvMatch[1] : '';
+    // grape: take the style note with ABV stripped as grape placeholder
+    const grape = styleRaw.replace(/\d{1,2}(?:\.\d)?\s*%/g,'').replace(/;.*$/,'').trim().slice(0,50);
+
+    const ukretail = ukPrices[wineCount] || '';
+    const ukdist = ukretail ? globalDist : '';
+    wineRows.push({ name, class: cls, grape, abv, closure: 'Cork', ukdist, ukretail, ukontrade: '', production: '', excell: '' });
+    wineCount++;
+  });
+
+  // fallback if no table
+  if (wineRows.length === 0) {
+    const docMatches = [...t.matchAll(/([A-Z][a-zA-ZÀ-ÿ\s']{2,40})\s+(DOCG|DOC|IGT|DOCa)/g)];
+    [...new Set(docMatches.map(m => m[1].trim() + '||' + m[2]))].forEach(entry => {
+      const [name, cls] = entry.split('||');
+      wineRows.push({ name, class: cls, grape: '', abv: '', closure: 'Cork', ukdist: '', ukretail: '', ukontrade: '', production: '', excell: '' });
+    });
+  }
+
+  // ── CERTIFICATIONS ────────────────────────────────────────
+  const certSection = (t.match(/certifications?\s*\n+([\s\S]{10,400}?)(?=\n##|\n---)/i) || ['',''])[1];
+  if (certSection) {
+    if (/no (?:formal|organic|biodynamic|certified|certification|confirmed)/i.test(certSection)) {
+      d.certs = 'None confirmed';
+    } else {
+      const certNames = [];
+      if (/\borganic\b/i.test(certSection)) certNames.push('Organic');
+      if (/biodynamic/i.test(certSection)) certNames.push('Biodynamic');
+      if (/SQNPI/i.test(certSection)) certNames.push('SQNPI');
+      if (/GlobalG\.?A\.?P/i.test(certSection)) certNames.push('GlobalG.A.P.');
+      if (/sustainable/i.test(certSection)) certNames.push('Sustainable');
+      d.certs = certNames.length > 0 ? certNames.join(', ') : '';
+    }
+  }
+
+  // ── WEBSITE — prefer actual domain over social media ──────
+  const socialDomains = ['facebook.com','instagram.com','twitter.com','x.com','linkedin.com'];
+  const allUrls = [...t.matchAll(/https?:\/\/([^\s\n)>]+)/g)].map(m => m[0].replace(/[.,)>]+$/,''));
+  const siteUrl = allUrls.find(u => !socialDomains.some(s => u.includes(s)));
+  if (siteUrl) {
+    d.website = siteUrl;
+  } else {
+    // try bare domain pattern (e.g. unmaredivino.it)
+    const bareDomain = t.match(/\b([a-z0-9\-]+\.(?:it|com|fr|de|es|co\.uk))\b/i);
+    if (bareDomain) d.website = bareDomain[1];
+  }
+
+  // ── UK STATUS ─────────────────────────────────────────────
+  if (/zero uk|no uk presence|no uk retail|no (?:other )?uk|not listed|no stockist|no confirmed uk/i.test(ukSection)
+      && !/lists?|listed at|£\d/i.test(ukSection)) {
+    d.ukstatus = 'None';
+  } else if (/lists?|listed|stocks?|£\d|davy|berry|armit|majestic/i.test(ukSection)) {
+    d.ukstatus = 'Listed';
+  }
+
+  // ── UK DISTRIBUTOR ────────────────────────────────────────
+  if (globalDist) d.ukdist = globalDist;
+
+  // ── UK RETAIL PRICE (first price found in UK section) ─────
+  const firstPrice = ukSection.match(/\*\*£(\d+\.\d{2})\*\*|£(\d+\.\d{2})/);
+  if (firstPrice) d.ukretail = '£' + (firstPrice[1]||firstPrice[2]);
+
+  // ── UK PRESENCE NOTES (clean full paragraph) ──────────────
+  if (ukSection) {
+    d.uknotes = ukSection.replace(/\*\*/g,'').replace(/^uk presence[:\s]*/i,'').replace(/\n{2,}/g,'\n').trim().slice(0,600);
+  }
+
+  // ── TIER ──────────────────────────────────────────────────
+  const tierMatch = t.match(/recommended tier[:\s*]*(Foundation|Growth|Partnership|Prospect)/i)
+    || t.match(/\*\*Recommended tier[:\s*]*(Foundation|Growth|Partnership|Prospect)/i);
+  if (tierMatch) d.tier = tierMatch[1];
+
+  // ── PRICE RANGE ───────────────────────────────────────────
+  const priceMatch = t.match(/price (?:range|band)[:\s]+([^\n]{3,60})/i) || t.match(/€\s*\d+[^\n]{0,40}/);
+  if (priceMatch) d.pricerange = (priceMatch[1]||priceMatch[0]).trim().slice(0,60);
+
+  // production intentionally left blank for manual entry
+  d.production = '';
+
+  return d;
+}
+
+// ── PREFILL STEP 4 ────────────────────────────────────────
+function prefillStep4() {
+  const d = Object.keys(parsedData).length > 0 ? parsedData : {
+    name: v('s1-name'), brand: v('s1-brand'), region: v('s1-region'),
+    country: v('s1-country'), contact: v('s1-contact'), email: v('s1-email'),
+    source: v('s1-source'), notes: v('s1-notes')
+  };
+  const simpleFields = ['name','brand','region','country','contact','email','pricerange','certs','website','ukstatus','ukdist','ukretail','ukon','uknotes','tier','status','source','notes','production'];
+  simpleFields.forEach(f => {
+    const el = document.getElementById('p-' + f);
+    if (!el || d[f] === undefined) return;
+    if (el.tagName === 'SELECT') {
+      [...el.options].forEach(o => { if (o.value === d[f]) el.value = d[f]; });
+    } else {
+      el.value = d[f];
+    }
+  });
+  const today = new Date().toISOString().slice(0,10);
+  if (!document.getElementById('p-firstcontact').value) document.getElementById('p-firstcontact').value = today;
+  if (!document.getElementById('p-lastactivity').value) document.getElementById('p-lastactivity').value = today;
+  renderWinesTable();
+}
+
+// ── QC CHECKLIST ──────────────────────────────────────────
+function toggleQC(el) {
+  el.classList.toggle('checked');
+  el.querySelector('.qc-check').textContent = el.classList.contains('checked') ? '✓' : '';
+}
+
+// ── SAVE TO DATABASE ──────────────────────────────────────
+function saveToDatabase() {
+  const name = document.getElementById('p-name').value.trim();
+  if (!name) { document.getElementById('saveError').style.display = ''; document.getElementById('saveSuccess').style.display = 'none'; return; }
+  document.getElementById('saveError').style.display = 'none';
+  loadProducers();
+
+  const simpleFields = ['name','brand','region','country','contact','email','production','pricerange','certs','website','ukstatus','ukdist','ukretail','ukon','uknotes','tier','status','firstcontact','lastactivity','source','notes'];
+  const obj = { id: 'prod-' + Date.now() };
+  simpleFields.forEach(f => { const el = document.getElementById('p-' + f); obj[f] = el ? el.value.trim() : ''; });
+  // save wines as structured array AND derive flat fields for Challenger compatibility
+  obj.wineRows = wineRows;
+  obj.wines = wineRows.map(w => w.name).filter(Boolean).join(', ');
+  // derive UK presence fields from wine rows
+  const listedWines = wineRows.filter(w => w.ukdist || w.ukretail);
+  obj.ukstatus = listedWines.length > 0 ? 'Listed' : (obj.ukstatus || 'None');
+  obj.ukdist   = [...new Set(wineRows.map(w=>w.ukdist).filter(Boolean))].join(', ');
+  obj.ukretail = listedWines.map(w => w.name + (w.ukretail ? ' ' + w.ukretail : '')).join('; ');
+  // aggregate production total and price range from wine rows
+  const prods = wineRows.map(w=>w.production).filter(Boolean);
+  if (prods.length) obj.production = prods.join(', ');
+  const prices = wineRows.map(w=>w.excell).filter(Boolean);
+  if (prices.length) obj.pricerange = prices.join(', ');
+
+  const existing = producers.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
+  if (existing >= 0) {
+    if (!confirm(`A producer named "${name}" already exists. Replace it?`)) return;
+    producers[existing] = obj;
+  } else {
+    producers.push(obj);
+  }
+  saveProducers();
+  const msg = document.getElementById('saveSuccess');
+  msg.style.display = '';
+  msg.textContent = `✓ ${name} saved — ${wineRows.length} wines, ${producers.length} producer${producers.length!==1?'s':''} total.`;
+  ['tab-1','tab-2','tab-3','tab-4'].forEach(id => document.getElementById(id).classList.add('done'));
+  setTimeout(() => goStep(5), 1200);
+}
+
+
+
+// ── DATABASE ──────────────────────────────────────────────
+function loadProducers() {
+  try { producers = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch(e) { producers = []; }
+}
+
+function saveProducers() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(producers));
+}
+
+function startNew() {
+  parsedData = {};
+  ['s1-name','s1-brand','s1-region','s1-contact','s1-email','s1-source','s1-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('s1-country').value = '';
+  document.getElementById('pasteArea').value = '';
+  document.getElementById('parseBtn').disabled = true;
+  document.getElementById('pasteWordCount').textContent = '0 words';
+  document.getElementById('saveSuccess').style.display = 'none';
+  document.getElementById('saveError').style.display = 'none';
+  document.getElementById('parseStatusMsg').style.display = 'none';
+  document.querySelectorAll('.qc-item').forEach(el => { el.classList.remove('checked'); el.querySelector('.qc-check').textContent = ''; });
+  document.querySelectorAll('.step-tab').forEach(t => t.classList.remove('done'));
+  document.getElementById('s1-next').disabled = true;
+  goStep(1);
+}
+
+function renderDB() {
+  loadProducers();
+  const cards = document.getElementById('dbCards');
+  const empty = document.getElementById('dbEmpty');
+  const summary = document.getElementById('dbSummary');
+
+  const tierClass = { Prospect: 'tier-Prospect', Foundation: 'tier-Foundation', Growth: 'tier-Growth', Partnership: 'tier-Partnership' };
+  const ukCol = { None: '#d1d5db', Partial: '#fbbf24', Listed: '#34d399' };
+
+  summary.innerHTML = `
+    <div class="db-stat"><strong>${producers.length}</strong>Total</div>
+    <div class="db-stat"><strong>${producers.filter(p=>p.tier==='Prospect').length}</strong>Prospect</div>
+    <div class="db-stat"><strong>${producers.filter(p=>p.tier==='Foundation').length}</strong>Foundation</div>
+    <div class="db-stat"><strong>${producers.filter(p=>p.tier==='Growth').length}</strong>Growth</div>
+    <div class="db-stat"><strong>${producers.filter(p=>p.tier==='Partnership').length}</strong>Partnership</div>
+    <div class="db-stat"><strong>${producers.filter(p=>p.ukstatus==='Listed').length}</strong>UK Listed</div>
+  `;
+
+  if (!producers.length) { cards.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+
+  cards.innerHTML = producers.map((p, i) => `
+    <div class="card" style="margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div style="width:28px;height:28px;background:var(--accent-light);color:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${i+1}</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;color:var(--accent-dark);">${p.name}${p.brand ? ` <span style="font-weight:400;font-size:11px;color:var(--muted);">/ ${p.brand}</span>` : ''}</div>
+          <div style="font-size:11px;color:var(--muted);">${[p.region,p.country].filter(Boolean).join(', ')}</div>
+          <span class="tier-pill ${tierClass[p.tier]||'tier-Prospect'}" style="margin-top:4px;">${p.tier||'Prospect'}</span>
+        </div>
+        <div style="text-align:right;">
+          <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;">
+            <div style="width:8px;height:8px;border-radius:50%;background:${ukCol[p.ukstatus]||'#d1d5db'};"></div>
+            <span style="font-size:11px;color:var(--muted);">${p.ukstatus==='Listed'?(p.ukdist||'UK Listed'):p.ukstatus||'No UK'}</span>
+          </div>
+          ${p.ukretail ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${p.ukretail}</div>` : ''}
+        </div>
+      </div>
+      ${p.wines ? `<div style="margin-top:8px;font-size:11px;color:var(--muted);"><strong style="color:var(--ink);">Wines:</strong> ${p.wines}</div>` : ''}
+      ${p.notes ? `<div style="margin-top:6px;font-size:11px;color:var(--muted);">${p.notes.slice(0,160)}${p.notes.length>160?'…':''}</div>` : ''}
+      <div style="margin-top:10px;display:flex;gap:6px;">
+        <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="deleteProducer('${p.id}')">Delete</button>
+        ${p.source ? `<span style="font-size:10px;color:var(--muted);align-self:center;">Source: ${p.source}</span>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function deleteProducer(id) {
+  if (!confirm('Delete this producer from the database?')) return;
+  loadProducers();
+  producers = producers.filter(p => p.id !== id);
+  saveProducers();
+  renderDB();
+}
+
+// ── INIT ──────────────────────────────────────────────────
+loadProducers();
+document.getElementById('p-lastactivity').value = new Date().toISOString().slice(0,10);
+</script>
+</body>
+</html>

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FG | Producer Profile Challenger</title>
+<style>
+  :root {
+    --ink: #1a1a2e; --accent: #2E5994; --accent-light: #dce8f7; --accent-dark: #1F3864;
+    --muted: #6b7280; --border: #d1d5db; --bg: #f8f9fc; --white: #ffffff;
+    --red: #b91c1c; --red-light: #fef2f2; --green: #15803d; --green-light: #f0fdf4;
+    --amber: #b45309; --amber-light: #fffbeb; --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; background: var(--bg); color: var(--ink); min-height: 100vh; }
+
+  .header { background: var(--accent-dark); color: white; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  .header-logo { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+  .header-sub { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+  .header-badge { margin-left: auto; background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; }
+
+  .main { display: grid; grid-template-columns: 340px 1fr; height: calc(100vh - 56px); }
+  .sidebar { background: var(--white); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+  .content { display: flex; flex-direction: column; overflow: hidden; }
+
+  .sidebar-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .sidebar-section h3 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 10px; }
+
+  /* PRODUCER PICKER */
+  .picker-row { display: flex; gap: 6px; align-items: center; }
+  .picker-row select { flex: 1; border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-size: 12px; background: white; }
+  .picker-row select:focus { outline: none; border-color: var(--accent); }
+  .refresh-btn { padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; cursor: pointer; color: var(--muted); }
+  .refresh-btn:hover { background: var(--accent-light); color: var(--accent); }
+
+  /* PRODUCER META CARD */
+  .meta-card { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-top: 10px; }
+  .meta-card.hidden { display: none; }
+  .meta-name { font-size: 13px; font-weight: 700; color: var(--accent-dark); }
+  .meta-brand { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .meta-grid { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .meta-row { display: flex; gap: 6px; }
+  .meta-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; width: 80px; flex-shrink: 0; padding-top: 1px; }
+  .meta-val { font-size: 11px; color: var(--ink); flex: 1; line-height: 1.4; }
+  .tier-pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-top: 6px; }
+  .tier-Foundation { background: var(--amber-light); color: var(--amber); }
+  .tier-Growth { background: var(--accent-light); color: var(--accent); }
+  .tier-Partnership { background: var(--green-light); color: var(--green); }
+  .tier-Prospect { background: #f3e8ff; color: #7c3aed; }
+
+  /* CONFLICT FLAG */
+  .flag-box { border-radius: 6px; padding: 8px 10px; margin-top: 8px; font-size: 11px; line-height: 1.5; }
+  .flag-box.hidden { display: none; }
+  .flag-amber { background: var(--amber-light); border: 1px solid #fcd34d; color: var(--amber); }
+  .flag-box strong { display: block; margin-bottom: 2px; font-size: 11px; }
+
+  /* WINES */
+  .wines-list { display: flex; flex-direction: column; gap: 5px; max-height: 180px; overflow-y: auto; }
+  .wine-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; background: var(--bg); border-radius: 5px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
+  .wine-item:hover, .wine-item.selected { background: var(--accent-light); border-color: var(--accent); }
+  .wine-check { font-size: 11px; color: var(--muted); width: 14px; flex-shrink: 0; }
+  .wine-name { font-size: 12px; font-weight: 600; flex: 1; }
+  .select-btns { margin-top: 6px; display: flex; gap: 6px; }
+  .select-btns button { flex: 1; padding: 4px; font-size: 11px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+  .select-btns button:hover { background: var(--accent-light); color: var(--accent); }
+
+  /* MODES */
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .mode-btn { padding: 8px 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; color: var(--muted); text-align: center; line-height: 1.3; transition: all 0.15s; }
+  .mode-btn:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+  .mode-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .mode-btn .mode-icon { font-size: 15px; display: block; margin-bottom: 2px; }
+
+  .custom-area { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  .custom-area label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); display: block; margin-bottom: 5px; }
+  .custom-area textarea { width: 100%; height: 64px; border: 1px solid var(--border); border-radius: 6px; padding: 7px; font-size: 12px; resize: none; font-family: inherit; }
+  .custom-area textarea:focus { outline: none; border-color: var(--accent); }
+
+  .run-area { padding: 12px 16px; margin-top: auto; }
+  .run-btn { width: 100%; padding: 10px; background: var(--accent); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.15s; }
+  .run-btn:hover { background: var(--accent-dark); }
+  .run-btn:disabled { background: var(--muted); cursor: not-allowed; }
+  .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .run-note { font-size: 10px; color: var(--muted); text-align: center; margin-top: 6px; }
+
+  /* OUTPUT */
+  .output-header { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: var(--white); flex-shrink: 0; }
+  .output-header h2 { font-size: 13px; font-weight: 700; color: var(--accent-dark); flex: 1; }
+  .status-badge { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 12px; }
+  .status-idle { background: var(--bg); color: var(--muted); }
+  .status-running { background: var(--amber-light); color: var(--amber); }
+  .status-done { background: var(--green-light); color: var(--green); }
+  .status-error { background: var(--red-light); color: var(--red); }
+  .copy-btn { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: var(--muted); }
+  .copy-btn:hover { background: var(--accent-light); color: var(--accent); }
+
+  .output-scroll { flex: 1; overflow-y: auto; padding: 20px; }
+  .output-content { max-width: 760px; margin: 0 auto; }
+
+  .output-placeholder { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .output-placeholder .ph-icon { font-size: 40px; margin-bottom: 12px; }
+  .output-placeholder p { font-size: 13px; line-height: 1.6; max-width: 360px; margin: 0 auto; }
+
+  .response-block { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .challenge-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-bottom: 10px; }
+  .tag-wines { background: var(--accent-light); color: var(--accent); }
+  .tag-uk { background: #fce7f3; color: #be185d; }
+  .tag-price { background: var(--green-light); color: var(--green); }
+  .tag-conflict { background: var(--amber-light); color: var(--amber); }
+  .tag-custom { background: #f3e8ff; color: #7c3aed; }
+  .tag-full { background: #e0f2fe; color: #0369a1; }
+  .response-text { font-size: 13px; line-height: 1.75; white-space: pre-wrap; color: var(--ink); }
+  .streaming { border-right: 2px solid var(--accent); animation: blink 0.7s step-end infinite; }
+  @keyframes blink { 50% { border-color: transparent; } }
+
+  .no-db-msg { background: var(--amber-light); border: 1px solid #fcd34d; border-radius: 6px; padding: 10px 12px; font-size: 11px; color: var(--amber); line-height: 1.5; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-logo">FG | Producer Profile Challenger</div>
+    <div class="header-sub">AI challenge layer — linked to Producer Database</div>
+  </div>
+  <div class="header-badge">v2.0 — Universal</div>
+</div>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- PRODUCER PICKER -->
+    <div class="sidebar-section">
+      <h3>Select Producer</h3>
+      <div class="picker-row">
+        <select id="producerSelect" onchange="loadProducer()">
+          <option value="">— choose from database —</option>
+        </select>
+        <button class="refresh-btn" onclick="loadDB()" title="Reload from database">↺</button>
+      </div>
+
+      <div id="noDbMsg" class="no-db-msg hidden">
+        No producers found in the database. Open <strong>FG_Producer_Database.html</strong> first and add at least one producer, then reload this page.
+      </div>
+
+      <!-- META CARD -->
+      <div class="meta-card hidden" id="metaCard">
+        <div class="meta-name" id="metaName"></div>
+        <div class="meta-brand" id="metaBrand"></div>
+        <div class="meta-grid">
+          <div class="meta-row"><div class="meta-label">Region</div><div class="meta-val" id="metaRegion"></div></div>
+          <div class="meta-row"><div class="meta-label">Contact</div><div class="meta-val" id="metaContact"></div></div>
+          <div class="meta-row"><div class="meta-label">UK status</div><div class="meta-val" id="metaUK"></div></div>
+          <div class="meta-row"><div class="meta-label">Production</div><div class="meta-val" id="metaProd"></div></div>
+        </div>
+        <span class="tier-pill" id="metaTier"></span>
+      </div>
+
+      <!-- CONFLICT FLAG (shown when ukdist is Davy's or notes contain "conflict") -->
+      <div class="flag-box flag-amber hidden" id="conflictFlag">
+        <strong>⚠ Strategic Flag</strong>
+        <span id="conflictText"></span>
+      </div>
+    </div>
+
+    <!-- WINES -->
+    <div class="sidebar-section">
+      <h3>Wines in Scope</h3>
+      <div class="wines-list" id="winesList">
+        <div style="font-size:11px;color:var(--muted);padding:8px 0;">Select a producer to load wines.</div>
+      </div>
+      <div class="select-btns">
+        <button onclick="selectAll()">Select all</button>
+        <button onclick="clearAll()">Clear</button>
+      </div>
+    </div>
+
+    <!-- MODES -->
+    <div class="sidebar-section">
+      <h3>Challenge Mode</h3>
+      <div class="mode-grid">
+        <div class="mode-btn" id="mode_wines" onclick="setMode('wines')"><span class="mode-icon">🍷</span>Key Wines</div>
+        <div class="mode-btn" id="mode_uk" onclick="setMode('uk')"><span class="mode-icon">🇬🇧</span>UK Presence</div>
+        <div class="mode-btn" id="mode_price" onclick="setMode('price')"><span class="mode-icon">£</span>Cost Price</div>
+        <div class="mode-btn" id="mode_conflict" onclick="setMode('conflict')"><span class="mode-icon">⚠</span>Distributor Conflict</div>
+        <div class="mode-btn" id="mode_full" onclick="setMode('full')" style="grid-column:1/-1;"><span class="mode-icon">🔍</span>Full 360° Challenge</div>
+      </div>
+    </div>
+
+    <!-- CUSTOM -->
+    <div class="custom-area">
+      <label>Custom Question</label>
+      <textarea id="customQuery" placeholder="Add a specific question or instruction…"></textarea>
+    </div>
+
+    <!-- RUN -->
+    <div class="run-area">
+      <button class="run-btn" id="runBtn" onclick="runChallenge()">
+        <span id="runBtnText">▶ Run Challenge</span>
+      </button>
+      <div class="run-note">Uses Claude Sonnet via Anthropic API</div>
+    </div>
+
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="content">
+    <div class="output-header">
+      <h2 id="outputTitle">Challenge Output</h2>
+      <span class="status-badge status-idle" id="statusBadge">Ready</span>
+      <button class="copy-btn" id="copyBtn" onclick="copyOutput()" style="display:none;">Copy</button>
+    </div>
+    <div class="output-scroll">
+      <div class="output-content" id="outputContent">
+        <div class="output-placeholder">
+          <div class="ph-icon">⚡</div>
+          <p>Select a producer from the dropdown, choose a challenge mode, then click <strong>Run Challenge</strong>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'fg_producer_db_v1';
+let producers = [];
+let currentProducer = null;
+let selectedWines = [];
+let currentMode = null;
+
+// ── LOAD DATABASE ──────────────────────────────────────────
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    producers = raw ? JSON.parse(raw) : [];
+  } catch(e) { producers = []; }
+
+  const sel = document.getElementById('producerSelect');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— choose from database —</option>';
+
+  if (producers.length === 0) {
+    document.getElementById('noDbMsg').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('noDbMsg').classList.add('hidden');
+
+  producers.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name + (p.brand ? ' / ' + p.brand : '') + ' — ' + (p.region || p.country || '');
+    sel.appendChild(opt);
+  });
+
+  // restore selection if still valid
+  if (current && producers.find(p => p.id === current)) {
+    sel.value = current;
+    loadProducer();
+  }
+}
+
+// ── LOAD SELECTED PRODUCER ────────────────────────────────
+function loadProducer() {
+  const id = document.getElementById('producerSelect').value;
+  if (!id) {
+    currentProducer = null;
+    document.getElementById('metaCard').classList.add('hidden');
+    document.getElementById('conflictFlag').classList.add('hidden');
+    document.getElementById('winesList').innerHTML = '<div style="font-size:11px;color:var(--muted);padding:8px 0;">Select a producer to load wines.</div>';
+    selectedWines = [];
+    return;
+  }
+
+  currentProducer = producers.find(p => p.id === id);
+  if (!currentProducer) return;
+
+  // META CARD
+  const mc = document.getElementById('metaCard');
+  mc.classList.remove('hidden');
+  document.getElementById('metaName').textContent = currentProducer.name || '';
+  document.getElementById('metaBrand').textContent = currentProducer.brand ? 'Export brand: ' + currentProducer.brand : '';
+  document.getElementById('metaRegion').textContent = [currentProducer.region, currentProducer.country].filter(Boolean).join(', ');
+  document.getElementById('metaContact').textContent = currentProducer.contact || '—';
+  document.getElementById('metaUK').textContent = currentProducer.ukstatus === 'Listed'
+    ? (currentProducer.ukdist || 'Listed') + (currentProducer.ukretail ? ' · ' + currentProducer.ukretail : '')
+    : (currentProducer.ukstatus || 'None identified');
+  document.getElementById('metaProd').textContent = currentProducer.production ? currentProducer.production + ' btls/yr' : '—';
+  const tierEl = document.getElementById('metaTier');
+  tierEl.textContent = currentProducer.tier || 'Prospect';
+  tierEl.className = 'tier-pill tier-' + (currentProducer.tier || 'Prospect');
+
+  // CONFLICT FLAG — show if notes mention conflict or distributor listed
+  const notes = (currentProducer.notes || '').toLowerCase();
+  const flagEl = document.getElementById('conflictFlag');
+  if (notes.includes('conflict') || notes.includes('clarif') || currentProducer.ukdist) {
+    flagEl.classList.remove('hidden');
+    document.getElementById('conflictText').textContent = currentProducer.ukdist
+      ? 'Active distributor: ' + currentProducer.ukdist + '. Review conflict/exclusivity before approach.'
+      : 'Strategist notes flag a clarification point. Review before approach.';
+  } else {
+    flagEl.classList.add('hidden');
+  }
+
+  // WINES
+  buildWinesList();
+}
+
+function buildWinesList() {
+  selectedWines = [];
+  const p = currentProducer;
+  if (!p) return;
+  const raw = p.wines || '';
+  const wines = raw.split(',').map(w => w.trim()).filter(Boolean);
+  const list = document.getElementById('winesList');
+  if (wines.length === 0) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:8px 0;">No wines listed for this producer.</div>';
+    return;
+  }
+  list.innerHTML = wines.map((w, i) => `
+    <div class="wine-item" data-wine="${w}" onclick="toggleWine(this)">
+      <span class="wine-check">☐</span>
+      <span class="wine-name">${w}</span>
+    </div>
+  `).join('');
+}
+
+function toggleWine(el) {
+  const wine = el.dataset.wine;
+  const chk = el.querySelector('.wine-check');
+  const idx = selectedWines.indexOf(wine);
+  if (idx === -1) { selectedWines.push(wine); el.classList.add('selected'); chk.textContent = '☑'; }
+  else { selectedWines.splice(idx, 1); el.classList.remove('selected'); chk.textContent = '☐'; }
+}
+
+function selectAll() {
+  document.querySelectorAll('.wine-item').forEach(el => { if (!el.classList.contains('selected')) toggleWine(el); });
+}
+function clearAll() {
+  selectedWines = [];
+  document.querySelectorAll('.wine-item').forEach(el => { el.classList.remove('selected'); el.querySelector('.wine-check').textContent = '☐'; });
+}
+
+function setMode(m) {
+  currentMode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('mode_' + m).classList.add('active');
+}
+
+// ── BUILD PROMPT ──────────────────────────────────────────
+function buildPrompt() {
+  const p = currentProducer;
+  const wineScope = selectedWines.length > 0 ? selectedWines.join(', ') : (p.wines || 'full portfolio');
+  const custom = document.getElementById('customQuery').value.trim();
+
+  const context = `You are an expert beverage strategist advising on UK market entry for European wine and spirits producers. The producer under review is detailed below.
+
+PRODUCER PROFILE:
+- Name: ${p.name}${p.brand ? ' (export brand: ' + p.brand + ')' : ''}
+- Region: ${[p.region, p.country].filter(Boolean).join(', ')}
+- Contact: ${p.contact || 'not recorded'}
+- Key wines: ${p.wines || 'not recorded'}
+- Annual production: ${p.production ? p.production + ' bottles' : 'not recorded'}
+- Price range: ${p.pricerange || 'not recorded'}
+- Certifications: ${p.certs || 'none recorded'}
+- Website: ${p.website || 'not recorded'}
+- UK presence status: ${p.ukstatus || 'None'}
+- UK distributor / merchant: ${p.ukdist || 'none identified'}
+- UK retail price: ${p.ukretail || 'not recorded'}
+- UK on-trade price: ${p.ukon || 'not recorded'}
+- UK presence notes: ${p.uknotes || 'none'}
+- Recommended tier: ${p.tier || 'not assigned'}
+- Outreach status: ${p.status || 'not recorded'}
+- How met / source: ${p.source || 'not recorded'}
+- Strategist notes: ${p.notes || 'none'}
+
+Wines in scope for this analysis: ${wineScope}.`;
+
+  const modes = {
+    wines: `${context}
+
+CHALLENGE TASK — Key Wines Assessment
+Critically assess the wines in scope as UK premium hospitality market candidates. For each wine:
+1. Style and relevance — is the profile genuinely aligned with current UK on-trade buyer interest?
+2. Classification check — does the DOC/IGT/appellation support the price point, or is it limiting?
+3. Positioning gaps — what would a UK hotel or restaurant buyer find missing, unclear, or unappealing?
+4. Verdict: identify the single strongest and single weakest wine for UK hospitality placement, with a one-sentence rationale for each.
+Be direct, specific, commercially grounded. No promotional framing.`,
+
+    uk: `${context}
+
+CHALLENGE TASK — UK Presence Reality Check
+Assess the producer's current UK market position honestly:
+1. What does the identified UK presence (or absence) actually mean strategically?
+2. If a distributor is listed — what does that distribution profile mean for broader UK hospitality ambitions? Does it help or constrain?
+3. Are there exclusivity or conflict implications that need clarifying before any further approach?
+4. Revised UK presence rating: none / emerging / partial / established — with clear rationale.
+5. What are the 2–3 most important intelligence gaps to close in a first producer conversation?
+Be sharp and commercially realistic.`,
+
+    price: `${context}
+
+CHALLENGE TASK — UK Cost Price & Margin Analysis
+Based on the UK pricing data available, estimate the full margin chain:
+1. Work backwards from the retail or on-trade price to estimate the likely ex-cellar (producer) cost price in GBP. Account for: UK duty (£2.67/bottle still wine, £2.23 sparkling), VAT (20%), freight/logistics (est. £1.00–1.50/bottle), importer/distributor margin (typically 30–40%), and merchant/retailer margin (typically 30–35% on cost).
+2. Show the full margin chain as a worked calculation from producer to consumer.
+3. On-trade analysis: at the listed on-trade price, what is the approximate GP% — and is this competitive for premium UK hospitality?
+4. For the producer: at the estimated ex-cellar price, is this a commercially sustainable export model? What annual volume would need to move to generate meaningful income?
+Show your working. Be precise with numbers.`,
+
+    conflict: `${context}
+
+CHALLENGE TASK — Distributor / Structural Conflict Analysis
+Analyse any distributor relationship, ownership complexity, or structural question flagged in this profile:
+1. What are the most likely structural explanations for the situation as described in the strategist notes and UK presence data?
+2. What are the strategic implications of each possible scenario for a representation agreement?
+3. What are the 3 most important questions to ask the producer contact in a first conversation to clarify the situation before proceeding?
+4. What is the risk level (low / medium / high) of proceeding without this clarification, and why?
+Be analytically sharp. This has direct implications for any commercial agreement.`,
+
+    full: `${context}
+
+CHALLENGE TASK — Full 360° Profile Challenge
+Provide a comprehensive challenge across all dimensions:
+
+SECTION A — Wine Quality & UK Positioning (2–3 paragraphs)
+SECTION B — UK Market Reality (honest assessment of current position)
+SECTION C — Cost Price Estimate (worked calculation, ex-cellar to consumer)
+SECTION D — Structural / Conflict Questions (top 3 clarification points)
+SECTION E — Revised Tier Recommendation (Foundation / Growth / Partnership) with clear rationale
+
+Be direct, commercially grounded, analytically precise. Internal strategist working document.`
+  };
+
+  let prompt = modes[currentMode] || `${context}\n\nCustom question from strategist: ${custom}`;
+  if (custom && currentMode && currentMode !== 'custom') prompt += `\n\nAdditional instruction: ${custom}`;
+  return prompt;
+}
+
+// ── RUN ───────────────────────────────────────────────────
+async function runChallenge() {
+  if (!currentProducer) { alert('Please select a producer first.'); return; }
+  if (!currentMode && !document.getElementById('customQuery').value.trim()) {
+    alert('Please select a challenge mode or enter a custom question.');
+    return;
+  }
+
+  const btn = document.getElementById('runBtn');
+  const btnText = document.getElementById('runBtnText');
+  const badge = document.getElementById('statusBadge');
+  const output = document.getElementById('outputContent');
+  const copyBtn = document.getElementById('copyBtn');
+
+  btn.disabled = true;
+  btnText.innerHTML = '<div class="spinner"></div> Running…';
+  badge.className = 'status-badge status-running';
+  badge.textContent = 'Analysing…';
+  copyBtn.style.display = 'none';
+
+  const tagMap = {
+    wines: ['tag-wines', '🍷 Key Wines Challenge'],
+    uk:    ['tag-uk',    '🇬🇧 UK Presence Challenge'],
+    price: ['tag-price', '£ Cost Price Analysis'],
+    conflict: ['tag-conflict', '⚠ Distributor Conflict'],
+    full:  ['tag-full',  '🔍 Full 360° Challenge']
+  };
+  const [tagClass, tagLabel] = tagMap[currentMode] || ['tag-custom', '💬 Custom Query'];
+  const producerLabel = currentProducer.name + (currentProducer.brand ? ' / ' + currentProducer.brand : '');
+
+  output.innerHTML = `<div class="response-block">
+    <span class="challenge-tag ${tagClass}">${tagLabel}</span>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">${producerLabel}</div>
+    <div class="response-text" id="streamText"><span class="streaming"> </span></div>
+  </div>`;
+
+  let fullText = '';
+  const streamEl = document.getElementById('streamText');
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        stream: true,
+        messages: [{ role: 'user', content: buildPrompt() }]
+      })
+    });
+
+    if (!response.ok) throw new Error(`API error ${response.status}`);
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+        try {
+          const evt = JSON.parse(data);
+          if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+            fullText += evt.delta.text;
+            streamEl.innerHTML = fullText.replace(/\n/g, '<br>') + '<span class="streaming"> </span>';
+          }
+        } catch(e) {}
+      }
+    }
+
+    streamEl.innerHTML = fullText.replace(/\n/g, '<br>');
+    badge.className = 'status-badge status-done';
+    badge.textContent = 'Complete';
+    copyBtn.style.display = '';
+
+  } catch(err) {
+    streamEl.innerHTML = `<span style="color:var(--red)">Error: ${err.message}. This tool requires the Anthropic API — open it inside Claude.ai.</span>`;
+    badge.className = 'status-badge status-error';
+    badge.textContent = 'Error';
+  }
+
+  btn.disabled = false;
+  btnText.textContent = '▶ Run Challenge';
+}
+
+function copyOutput() {
+  const text = document.getElementById('streamText')?.innerText || '';
+  navigator.clipboard.writeText(text).then(() => {
+    document.getElementById('copyBtn').textContent = 'Copied!';
+    setTimeout(() => document.getElementById('copyBtn').textContent = 'Copy', 1500);
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────
+loadDB();
+</script>
+</body>
+</html>
